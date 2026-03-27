@@ -1,13 +1,18 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "esp_err.h"
+#define OTA_BUFFER_SIZE 1024
+#define OTA_SHA256_LEN 32
+#define OTA_SHA256_HEX_LEN (OTA_SHA256_LEN * 2)
+#define CMD_BUFFER_SIZE 512
+#define USB_JTAG_READ_TIMEOUT_MS 1000
+#define USB_JTAG_LINE_POLL_MS 20
 
-#include "app_state.h"
-
+void ota_console_init(void);
+void ota_console_task(void *arg);
 void ota_mark_running_partition_valid(void);
-esp_err_t ota_perform_from_console(app_state_t *state,
-                                   size_t image_size,
-                                   const uint8_t expected_digest[OTA_SHA256_LEN]);
+bool ota_running(void);
+void usb_flush(void);

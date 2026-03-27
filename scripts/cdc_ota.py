@@ -114,11 +114,11 @@ def do_ota(port: serial.Serial, image_path: Path, chunk_size: int, chunk_delay_m
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="ESP32-S3 CDC OTA helper")
-    parser.add_argument("--port", required=True, help="Serial port, for example COM6")
+    parser.add_argument("--port", type=str,default="COM11", help="Serial port, for example COM6")
     parser.add_argument("--baud", type=int, default=460800, help="Serial baudrate (CDC usually ignores this)")
     parser.add_argument("--timeout", type=float, default=1.0, help="Per-read timeout in seconds")
-    parser.add_argument("--image", type=Path, help="Firmware image path, usually build/ota_example.bin")
-    parser.add_argument("--chunk-size", type=int, default=256, help="Bytes sent per chunk during OTA")
+    parser.add_argument("--image", type=Path,default="../build/ota_demo.bin", help="Firmware image path, usually build/ota_example.bin")
+    parser.add_argument("--chunk-size", type=int, default=512, help="Bytes sent per chunk during OTA")
     parser.add_argument("--chunk-delay-ms", type=float, default=10.0, help="Delay between OTA chunks in milliseconds")
     parser.add_argument("command", choices=("ping", "info", "ota"))
     args = parser.parse_args()

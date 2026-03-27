@@ -11,7 +11,11 @@
   - 日常命令通信
   - OTA 固件升级
 - 使用 `otadata + ota_0 + ota_1` 的 A/B 分区切换
-- 保留 LED 闪烁任务与心跳任务，便于在线确认应用存活
+- 提供可复用的 `app` 生命周期框架：
+- `app.c` 内部直接维护业务 `state struct`
+- `app_task` 内部显式调用业务 `init/start/loop/on_received`
+- OTA 控制台优先把收到的原始数据帧分发给 `app_on_received()`，用户处理后会跳过框架内建命令
+- OTA 启动前会先检查 `app` 是否处于 `idle`，并在升级期间暂停 `app`
 - 控制台命令：
   - `help`
   - `ping`
@@ -22,13 +26,9 @@
 
 ## 工程结构
 
-- `main/app_main.c`：系统入口与任务创建
-- `main/console_io.c`：USB Serial/JTAG 初始化、flush、行读取、信息输出
-- `main/console_task.c`：命令解析与 OTA 命令调度
-- `main/ota_service.c`：OTA 接收、写入、镜像校验、切换启动分区
-- `main/heartbeat.c`：周期心跳
-- `main/led.c`：LED 闪烁
-- `main/app_state.h`：共享状态与公共常量
+- `main/app_main.c`：只负责启动框架任务
+- `main/app.c` / `main/app.h`：应用生命周期、全局状态、命令回调分发
+- `main/ota_service.c`：USB 命令控制台、默认命令与 OTA 流程
 - `scripts/cdc_ota.py`：PC 端升级脚本
 
 ## 构建与烧录
@@ -80,3 +80,5 @@ py scripts/cdc_ota.py --port COM6 info
   - `--chunk-size 256`
   - `--chunk-delay-ms 10`
 - 本工程当前使用的是 `USB Serial/JTAG`，不是 `USB CDC ACM`。
+- 心跳默认每 `5s` 输出一次。
+- 日志统一格式为：`[HH:MM:SS.mmm] [LEVEL] 内容`

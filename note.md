@@ -20,6 +20,65 @@
 
 ## 今天遇到的主要问题和经验
 
+### 0. ESP32-S3-WROOM-1-N16R8 的 Flash / PSRAM 模式先配错了
+**现象**
+- 板子烧录后 bootloader 能正常起来。
+- 日志能看到：
+  - `SPI Flash Size : 16MB`
+  - 但随后报 `quad_psram: PSRAM chip is not connected, or wrong PSRAM line mode`
+  - 并在 `Failed to init external RAM!` 后 abort
+
+**第一次误判**
+- 一开始只把工程从 `2MB flash` 改成了 `16MB flash`，并打开了 `PSRAM`。
+- 当时配置是：
+  - Flash = `DIO`
+  - PSRAM = `QUAD`
+- 这会导致：
+  - Flash 虽然能启动，但 `PSRAM` 初始化失败。
+
+**逐步定位过程**
+- 第一步先确认 `flash` 容量和分区表：
+  - boot log 显示 `SPI Flash Size : 16MB`
+  - OTA 分区表也正确加载
+- 第二步把 Flash 从 `DIO` 改成 `QIO`
+  - 改完后日志变成 `SPI Mode : QIO`
+  - 说明 Flash 模式已经匹配
+- 第三步继续看报错仍然是：
+  - `quad_psram: ... wrong PSRAM line mode`
+  - 这时可以确认问题只剩 `PSRAM` 线模式不匹配
+- 最终根据模组型号 `ESP32-S3-WROOM-1-N16R8`，把 `PSRAM` 从 `QUAD` 改成 `OCTAL`
+
+**最终正确配置**
+- 模组：`ESP32-S3-WROOM-1-N16R8`
+- Flash size：`16MB`
+- Flash mode：`QIO`
+- PSRAM：`8MB Octal`
+- 关键结论：
+  - `N16R8` 这块板在本项目里不能按 `quad psram` 配
+  - 否则会在 app 启动前卡死在 external RAM 初始化阶段
+
+**最终成功特征**
+- 启动日志出现：
+  - `octal_psram: vendor id ...`
+  - `Found 8MB PSRAM device`
+  - `SPI SRAM memory test OK`
+  - `flash io: qio`
+- 应用正常进入：
+  - `OK cdc_iap_ready`
+
+**经验**
+- 对 `ESP32-S3-WROOM-1-N16R8`，板级配置要优先按：
+  - `16MB Flash`
+  - `QIO Flash`
+  - `8MB Octal PSRAM`
+- 如果看到：
+  - `quad_psram: PSRAM chip is not connected, or wrong PSRAM line mode`
+  - 不要先怀疑分区表或应用逻辑，先检查 `PSRAM` 模式是不是配成了 `QUAD`
+- 排查顺序建议固定为：
+  - 先看 `SPI Flash Size`
+  - 再看 `SPI Mode`
+  - 最后看 `quad_psram` / `octal_psram` 初始化日志
+
 ### 1. 把控制台从 USB Serial/JTAG 切到 USB CDC 后，COM 口消失
 **现象**
 - 烧录后原来的 `COM6` 消失。
